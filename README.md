@@ -86,3 +86,40 @@ curl -i http://127.0.0.1:8080/
   - Keep Secrets out of images; use secret stores (e.g., External Secrets) if needed
 
 These defaults aim to be secure and production-lean while remaining easy to override through `values.yaml` for your environment.
+
+## Argo CD Application example
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: httpbin
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/lizardDroid/appdesign
+    targetRevision: HEAD
+    path: deployments/httpbin
+    helm:
+      releaseName: httpbin
+      values: |
+        ingress:
+          enabled: true
+          className: nginx
+          hosts:
+            - host: httpbin.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+        rollout:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: web
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+```
