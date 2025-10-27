@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include \"httpbin.fullname\" . }}-test"
+  labels:
+    {{- include "httpbin.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: curl
+      image: curlimages/curl:8.10.1
+      imagePullPolicy: IfNotPresent
+      command: ["sh","-c"]
+      args:
+        - >-
+          set -euo pipefail;
+          echo "Probing service...";
+          URL="http://{{ .Values.rollout.enabled | ternary .Values.rollout.stableServiceName (include \"httpbin.fullname\" .) }}:{{ .Values.service.port }}/";
+          echo "GET ${URL}";
+          curl -sfL "${URL}"
+
+

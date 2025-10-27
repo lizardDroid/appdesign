@@ -72,4 +72,22 @@ jobs:
             kubeconform -strict -summary -kubernetes-version 1.28.0 -ignore-missing-schemas "$f"
           done
 
+      - name: Install kube-linter
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/stackrox/kube-linter/main/install.sh | sh -s -- -b /usr/local/bin
+          kube-linter version
+
+      - name: Kube-linter (chart)
+        run: |
+          set -euo pipefail
+          FILES=""
+          for f in rendered-rollout.yaml rendered-deployment.yaml rendered-dev.yaml; do
+            [ -f "$f" ] && FILES="$FILES $f"
+          done
+          if [ -n "$FILES" ]; then
+            kube-linter lint --color never $FILES
+          else
+            echo "No rendered files present for kube-linter; skipping."
+          fi
+
 

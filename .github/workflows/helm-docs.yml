@@ -1,0 +1,31 @@
+name: Helm Docs
+
+on:
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install helm-docs
+        run: |
+          curl -sSL -o helm-docs.tar.gz https://github.com/norwoodj/helm-docs/releases/download/v1.13.1/helm-docs_1.13.1_Linux_x86_64.tar.gz
+          tar -xzf helm-docs.tar.gz helm-docs
+          sudo mv helm-docs /usr/local/bin/
+          helm-docs --version
+
+      - name: Verify docs up-to-date
+        run: |
+          set -euo pipefail
+          helm-docs --chart-search-root deployments
+          if ! git diff --quiet -- deployments/httpbin/README.md; then
+            echo "README for chart is out of date. Run helm-docs locally and commit the changes." >&2
+            git --no-pager diff -- deployments/httpbin/README.md || true
+            exit 1
+          fi
+
+

@@ -1,0 +1,13 @@
+chart-dirs:
+  - deployments
+charts:
+  - deployments/httpbin
+helm-extra-args: --timeout 10m
+check-version-increment: false
+target-branch: main
+validate-maintainers: false
+upgrade: true
+namespace: web
+release-label: app.kubernetes.io/instance
+
+
