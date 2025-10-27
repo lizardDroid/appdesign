@@ -89,7 +89,7 @@ jobs:
             [ -f "$f" ] && FILES="$FILES $f"
           done
           if [ -n "$FILES" ]; then
-            kube-linter lint --color never $FILES
+            kube-linter lint $FILES
           else
             echo "No rendered files present for kube-linter; skipping."
           fi
