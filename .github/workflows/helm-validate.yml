@@ -69,7 +69,7 @@ jobs:
           for f in rendered-rollout.yaml rendered-deployment.yaml rendered-dev.yaml; do
             [ -f "$f" ] || continue
             echo "Validating $f"
-            kubeconform -strict -summary -kubernetes-version 1.28 -ignore-missing-schemas "$f"
+            kubeconform -strict -summary -kubernetes-version 1.28.0 -ignore-missing-schemas "$f"
           done
 
 
