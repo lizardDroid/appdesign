@@ -2,7 +2,7 @@ replicaCount: 3
 
 image:
   repository: kennethreitz/httpbin
-  tag: "latest"   # For production, prefer a pinned digest below.
+  tag: "2024-10-01"   # Avoid 'latest' to satisfy policy checks; prefer digest below.
   # digest: ""    # e.g., sha256:...
   pullPolicy: IfNotPresent
 
