@@ -1,0 +1,22 @@
+{{- if .Values.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "httpbin.fullname" . }}
+  labels:
+    {{- include "httpbin.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: {{ .Values.useDeploymentFallback | ternary "apps/v1" "argoproj.io/v1alpha1" }}
+    kind: {{ .Values.useDeploymentFallback | ternary "Deployment" "Rollout" }}
+    name: {{ include "httpbin.fullname" . }}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.hpa.targetCPUUtilizationPercentage }}
+{{- end }}

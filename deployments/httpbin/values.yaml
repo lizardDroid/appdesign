@@ -1,0 +1,116 @@
+replicaCount: 3
+
+image:
+  repository: kennethreitz/httpbin
+  tag: "latest"   # For production, prefer a pinned digest below.
+  # digest: ""    # e.g., sha256:...
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: "nginx"
+  hosts:
+    - host: httpbin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+tmpDir:
+  enabled: true       # mount writable /tmp for httpbin (python) while keeping root FS read-only
+  medium: ""          # e.g., "Memory" to use tmpfs; empty uses node storage
+
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  whenUnsatisfiable: DoNotSchedule
+  topologyKey: kubernetes.io/hostname
+
+podAntiAffinity: required  # required | preferred | off
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+networkPolicy:
+  enabled: false
+  defaultDenyEgress: true
+  allowDNS: true      # allow UDP/TCP 53 for DNS
+  additionalEgressRules: []
+
+# Probe tuning
+readiness:
+  path: /
+  initialDelaySeconds: 3
+  periodSeconds: 10
+liveness:
+  path: /
+  initialDelaySeconds: 10
+  periodSeconds: 20
+startup:
+  enabled: false
+  path: /
+  failureThreshold: 30
+  periodSeconds: 10
+
+# --- Argo Rollouts (canary) ---
+rollout:
+  enabled: true
+  stableServiceName: httpbin
+  canaryServiceName: httpbin-canary
+  trafficRouting:
+    nginx:
+      enabled: true
+      stableIngress: httpbin
+  steps:
+    - setWeight: 20
+    - pause: { duration: 60 }
+    - setWeight: 50
+    - pause: { duration: 120 }
+    - setWeight: 100
+  analysis:
+    enabled: false
+    templates: []
+    args: []
+
+useDeploymentFallback: false  # If true, render classic Deployment instead of Rollout
