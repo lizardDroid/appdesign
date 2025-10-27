@@ -10,7 +10,7 @@ jobs:
   lint-and-validate:
     runs-on: ubuntu-latest
     env:
-      RELEASE_NAME: ${{ toLower(github.event.repository.name) }}
+      RELEASE_NAME: ${{ github.event.repository.name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,6 +19,10 @@ jobs:
         uses: azure/setup-helm@v4
         with:
           version: v3.14.4
+
+      - name: Normalize release name
+        run: |
+          echo "RELEASE_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Helm lint (base)
         run: |
