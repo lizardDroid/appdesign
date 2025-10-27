@@ -29,3 +29,60 @@ kubectl -n web port-forward svc/httpbin 8080:80 &
 sleep 2
 curl -i http://127.0.0.1:8080/
 ```
+
+## Best practices used in this chart
+- **Run as non-root and drop privileges**:
+  - `podSecurityContext.runAsNonRoot: true`, `runAsUser: 1000`, `runAsGroup: 1000`
+  - `securityContext.allowPrivilegeEscalation: false`
+  - `securityContext.readOnlyRootFilesystem: true`
+  - `securityContext.capabilities.drop: ["ALL"]`
+  - `podSecurityContext.seccompProfile.type: RuntimeDefault`
+
+- **Dedicated ServiceAccount with minimal exposure**:
+  - `serviceAccount.create: true` by default, with `serviceAccount.name` override
+  - Pods set `serviceAccountName` accordingly
+  - `automountServiceAccountToken: false` on Pods to avoid mounting tokens unless needed
+
+- **Immutable and reproducible images**:
+  - Default `image.pullPolicy: IfNotPresent`
+  - Recommend pinning `image.digest` (e.g., `sha256:...`) instead of mutable tags for production
+
+- **Health probes for fast recovery**:
+  - Readiness and liveness probes enabled and configurable; optional startup probe
+  - Keep probe thresholds/timeouts aligned with app startup/steady-state behavior
+
+- **Resource requests/limits and autoscaling**:
+  - Sensible default requests/limits to protect cluster SLOs
+  - HPA enabled with CPU-based scaling (`minReplicas`, `maxReplicas`, `targetCPUUtilizationPercentage`)
+
+- **Disruption tolerance**:
+  - PodDisruptionBudget enabled by default (`minAvailable: 2`) to limit voluntary disruptions
+
+- **Predictable scheduling and high availability**:
+  - `podAntiAffinity: required` to spread replicas across nodes
+  - `topologySpreadConstraints` to evenly distribute Pods (requires ≥3 nodes for `replicaCount: 3`)
+  - If your cluster has fewer nodes, set `podAntiAffinity: preferred`
+
+- **Network security by default**:
+  - Optional NetworkPolicies
+  - Default deny egress policy, plus explicit DNS egress allow (TCP/UDP 53)
+  - Extra egress rules can be provided via `networkPolicy.additionalEgressRules`
+
+- **Ingress and traffic management**:
+  - Optional Ingress with class selection (`ingress.className`)
+  - Canary releases via Argo Rollouts with stable/canary Services and NGINX traffic routing
+
+- **Safe rollouts (progressive delivery)**:
+  - Argo Rollouts canary steps: gradual weights and pauses by default
+  - Optional `rollout.analysis` (templates/args) for metric-based gating
+
+- **Consistent naming and labels**:
+  - Uses Helm helpers for names; no hard-coded resource names
+  - Standard Kubernetes labels under `app.kubernetes.io/*` for better tooling and queries
+
+- **Operational guidance**:
+  - Prefer pinning image digests for supply-chain integrity
+  - Consider adding Prometheus scrape annotations if you expose metrics
+  - Keep Secrets out of images; use secret stores (e.g., External Secrets) if needed
+
+These defaults aim to be secure and production-lean while remaining easy to override through `values.yaml` for your environment.

@@ -1,0 +1,71 @@
+name: Helm Lint and Validate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_NAME: ${{ toLower(github.event.repository.name) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Helm lint (base)
+        run: |
+          helm lint deployments/httpbin
+
+      - name: Helm lint (env: dev overrides)
+        run: |
+          if [ -f environments/dev/values.yaml ]; then
+            helm lint deployments/httpbin -f environments/dev/values.yaml
+          fi
+
+      - name: Render manifests (Rollout)
+        run: |
+          helm template "$RELEASE_NAME" deployments/httpbin \
+            --namespace default \
+            > rendered-rollout.yaml
+
+      - name: Render manifests (Deployment fallback)
+        run: |
+          helm template "$RELEASE_NAME" deployments/httpbin \
+            --namespace default \
+            --set useDeploymentFallback=true \
+            > rendered-deployment.yaml
+
+      - name: Render manifests (Dev overrides)
+        run: |
+          if [ -f environments/dev/values.yaml ]; then
+            helm template "$RELEASE_NAME" deployments/httpbin \
+              --namespace default \
+              -f environments/dev/values.yaml \
+              > rendered-dev.yaml
+          fi
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL -o kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+          kubeconform -v
+
+      - name: Validate manifests with kubeconform
+        run: |
+          set -euo pipefail
+          for f in rendered-rollout.yaml rendered-deployment.yaml rendered-dev.yaml; do
+            [ -f "$f" ] || continue
+            echo "Validating $f"
+            kubeconform -strict -summary -kubernetes-version 1.28 -ignore-missing-schemas "$f"
+          done
+
+
