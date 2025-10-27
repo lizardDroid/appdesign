@@ -1,4 +1,10 @@
 # Example environment-specific overrides
+
+image:
+  repository: kennethreitz/httpbin
+  tag: "latest"
+  pullPolicy: Always ## This is not recommended for production, but it is allowed for dev.
+
 ingress:
   enabled: false
 
