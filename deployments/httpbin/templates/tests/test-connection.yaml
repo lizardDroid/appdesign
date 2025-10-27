@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include \"httpbin.fullname\" . }}-test"
+  name: {{ printf "%s-test" (include "httpbin.fullname" .) }}
   labels:
     {{- include "httpbin.labels" . | nindent 4 }}
   annotations:
@@ -18,7 +18,7 @@ spec:
         - >-
           set -euo pipefail;
           echo "Probing service...";
-          URL="http://{{ .Values.rollout.enabled | ternary .Values.rollout.stableServiceName (include \"httpbin.fullname\" .) }}:{{ .Values.service.port }}/";
+          URL="http://{{ .Values.rollout.enabled | ternary .Values.rollout.stableServiceName (include "httpbin.fullname" .) }}:{{ .Values.service.port }}/";
           echo "GET ${URL}";
           curl -sfL "${URL}"
 
